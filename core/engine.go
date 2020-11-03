@@ -5,10 +5,23 @@ import (
 	"github.com/wujc16/go-scrapy/network"
 )
 
-type Spider struct {
-	siteCrawled int32
-	currentUrl  string
+// 处理器
+type ProcessorInfo struct {
+	Name      string
+	Processor ProcessorFunc
 }
+
+type ProcessorInfos []*ProcessorInfo
+
+type Spider struct {
+	siteCrawled    int32 // 已经爬过的网站数
+	currentUrl     string
+	ProcessorInfos ProcessorInfos
+}
+
+type ParserFunc func(html string)
+type ProcessorFunc func(url string, f ParserFunc)
+type ProcessorChain []ProcessorFunc
 
 // 全局只有一个 spider
 var spider *Spider
@@ -25,6 +38,17 @@ func (s *Spider) GetSiteCrawled() int32 {
 
 func (s *Spider) GetCurrentUrl() string {
 	return s.currentUrl
+}
+
+// 注册 Processor 处理器
+func (s *Spider) Register(name string, processor ProcessorFunc) {
+	processorInfo := &ProcessorInfo{
+		Name:      name,
+		Processor: processor,
+	}
+	// TODO 注册的时候需要进行重名检查，最好使用 Map 数据结构
+	newProcessorInfos := append(s.ProcessorInfos, processorInfo)
+	s.ProcessorInfos = newProcessorInfos
 }
 
 func GetSpider(url string) (*Spider, error) {
