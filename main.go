@@ -32,5 +32,5 @@ func main() {
 	spider.Register("article", articleProcessor)
 	spider.Register("chapter", chapterProcessor)
 	fmt.Println(spider)
-	// spider.Run()
+	spider.Run()
 }

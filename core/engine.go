@@ -1,9 +1,8 @@
 package scrapy
 
 import (
-	"container/list"
 	"fmt"
-	"github.com/wujc16/go-scrapy/network"
+	"github.com/wujc16/go-scrapy/ds"
 )
 
 const InitProcessorName = "@@INIT_PROCESSOR"
@@ -22,8 +21,8 @@ type Spider struct {
 	ProcessorInfos ProcessorInfos // 注册的处理器函数{ProcessorName, ProcessorFunc}
 	// TODO：待爬取的队列
 	processorMap map[string]ProcessorFunc
-	waitQueue    *list.List
-	processQueue *list.List
+	waitQueue    *ds.Queue
+	processQueue *ds.Queue
 }
 
 type ParserFunc func(html string)
@@ -51,20 +50,33 @@ func (s *Spider) Register(name string, processor ProcessorFunc) {
 
 func (s *Spider) Run() {
 	fmt.Println("Start spider now!")
-	res := network.HttpGet(s.currentUrl)
-	fmt.Println(res)
-	for true {
-		fmt.Println("Hello World")
-		if s.waitQueue.Len() > 0 {
-		}
-		if s.waitQueue.Len() == 0 && s.processQueue.Len() == 0 {
-			break
-		}
+	m := map[string]string{
+		InitProcessorName: s.currentUrl,
 	}
+	s.waitQueue.Enqueue(m)
+	fmt.Println("s.waitQueue", s.waitQueue)
+	s.flushQueue()
 }
 
 func (s *Spider) flushQueue() {
-
+	for true {
+		if s.waitQueue.GetSize() > 0 || s.processQueue.GetSize() > 0 {
+			if s.processQueue.GetSize() < 5 {
+				e, _ := s.waitQueue.Dequeue()
+				s.processQueue.Enqueue(e)
+				for true {
+					if s.processQueue.GetSize() > 0 {
+						e, _ := s.processQueue.Dequeue()
+						fmt.Println("e", e)
+					} else {
+						break
+					}
+				}
+			}
+		} else {
+			break
+		}
+	}
 }
 
 func (s *Spider) GetSiteCrawled() int32 {
@@ -89,7 +101,7 @@ func init() {
 		siteCrawled:  0,
 		currentUrl:   "",
 		processorMap: make(map[string]ProcessorFunc),
-		processQueue: list.New(),
-		waitQueue:    list.New(),
+		processQueue: ds.NewQueue(),
+		waitQueue:    ds.NewQueue(),
 	}
 }
