@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+// 最初入口 url 的 processor，用来获取到各个小说分类的入口 url
 func initProcessor(ctx *scrapy.Context, resp *http.Response) *scrapy.ProcessorResult {
 	result := &scrapy.ProcessorResult{
 		ShallStop:     true,
@@ -16,12 +17,13 @@ func initProcessor(ctx *scrapy.Context, resp *http.Response) *scrapy.ProcessorRe
 	doc, _ := goquery.NewDocumentFromReader(resp.Body)
 	doc.Find("div.select-list div.type-filter ul li a").Each(func(i int, selection *goquery.Selection) {
 		val, _ := selection.Attr("href")
-		result.UrlProcessors["https:"+val] = "article"
+		result.UrlProcessors["https:"+val] = "category"
 	})
 	return result
 }
 
-func articleProcessor(ctx *scrapy.Context, resp *http.Response) *scrapy.ProcessorResult {
+// 处理分类 url 的 processor，可以获取到所有小说的名字并打印
+func categoryProcessor(ctx *scrapy.Context, resp *http.Response) *scrapy.ProcessorResult {
 	doc, _ := goquery.NewDocumentFromReader(resp.Body)
 	doc.Find("div.all-book-list ul.all-img-list li h4 a").Each(func(i int, selection *goquery.Selection) {
 		fmt.Println(selection.Text())
@@ -35,11 +37,9 @@ func main() {
 	// 调度
 	// 终止
 	spider, err := scrapy.NewSpider("https://www.qidian.com/finish", initProcessor)
-	fmt.Println(scrapy.InitProcessorName)
 	if err != nil {
 		panic(err)
 	}
-	spider.Register("article", articleProcessor)
-	fmt.Println(spider)
+	spider.Register("category", categoryProcessor)
 	spider.Run()
 }
